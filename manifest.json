@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "PriceTracker",
+  "version": "0.3",
+  "description": "Сохраняет товары и обновляет их цены.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://5ka.ru/*",
+    "https://www.5ka.ru/*",
+    "https://globus.ru/*",
+    "https://www.globus.ru/*",
+    "https://dixy.ru/*",
+    "https://www.dixy.ru/*",
+    "https://lavka.yandex.ru/*",
+    "https://smart.swnn.ru/*",
+    "https://magnit.ru/*",
+    "https://www.magnit.ru/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

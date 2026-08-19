@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<title>PriceTracker — результаты</title>
+
+	<style>
+		html {
+			scroll-behavior: smooth;
+		}
+
+		body {
+			font-family: Arial, sans-serif;
+			max-width: 1200px;
+			margin: 40px auto;
+			padding: 0 20px;
+			background: #f7f7f7;
+		}
+
+		h1 {
+			margin-bottom: 24px;
+		}
+
+		table {
+			width: 100%;
+			table-layout: fixed;
+			border-collapse: collapse;
+			background: white;
+			border-radius: 10px;
+			overflow: hidden;
+		}
+
+		th:nth-child(1), td:nth-child(1) { width: 24%; }
+		th:nth-child(2), td:nth-child(2) { width: 10%; }
+		th:nth-child(3), td:nth-child(3) { width: 9%; }
+		th:nth-child(4), td:nth-child(4) { width: 9%; }
+		th:nth-child(5), td:nth-child(5) { width: 8%; }
+		th:nth-child(6), td:nth-child(6) { width: 8%; }
+		th:nth-child(7), td:nth-child(7) { width: 16%; }
+		th:nth-child(8), td:nth-child(8) { width: 10%; }
+		th:nth-child(9), td:nth-child(9) {
+			width: 6%;
+			padding-right: 0;
+			padding-left: 0;
+			text-align: center;
+			white-space: nowrap;
+		}
+
+		th,
+		td {
+			box-sizing: border-box;
+			padding: 12px 14px;
+			border-bottom: 1px solid #ddd;
+			text-align: left;
+			overflow-wrap: anywhere;
+		}
+
+		th {
+			background: #eeeeee;
+		}
+
+		tr:last-child td {
+			border-bottom: none;
+		}
+
+		.price {
+			font-weight: 700;
+			font-size: 18px;
+			white-space: nowrap;
+		}
+
+		.error {
+			color: #b00020;
+		}
+
+		.updated {
+			color: #666;
+			font-size: 13px;
+			white-space: nowrap;
+		}
+
+		a {
+			color: inherit;
+		}
+
+		#summary {
+			margin-bottom: 18px;
+			color: #555;
+		}
+
+		#backupControls {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 10px;
+		}
+
+		.backup-button {
+			width: auto;
+			padding: 6px 10px;
+			cursor: pointer;
+		}
+
+		#backupMessage {
+			min-height: 18px;
+			margin-bottom: 18px;
+			color: #555;
+		}
+
+		#storeNavigation {
+			margin-bottom: 24px;
+		}
+
+		.store-section {
+			margin-bottom: 36px;
+			scroll-margin-top: 20px;
+		}
+
+		.store-title {
+			margin: 0 0 12px;
+		}
+
+		.store-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 16px;
+			margin-bottom: 12px;
+		}
+
+		.store-header .store-title {
+			margin: 0;
+		}
+
+		.store-heading,
+		.store-header-actions {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.store-order-controls {
+			display: inline-flex;
+			gap: 4px;
+		}
+
+		.store-order-button {
+			width: auto;
+			padding: 3px 7px;
+			cursor: pointer;
+		}
+
+		.store-order-button:disabled {
+			cursor: default;
+			opacity: 0.45;
+		}
+
+		.store-top-link {
+			white-space: nowrap;
+			font-size: 13px;
+		}
+
+		.store-update-control {
+			text-align: right;
+		}
+
+		.store-update-button {
+			width: auto;
+			padding: 6px 10px;
+			cursor: pointer;
+		}
+
+		.store-update-status {
+			margin-top: 4px;
+			font-size: 12px;
+			color: #555;
+		}
+
+		.edit-input {
+			box-sizing: border-box;
+			max-width: 180px;
+			padding: 6px;
+		}
+
+		.target-price-input {
+			box-sizing: border-box;
+			width: 8ch;
+			max-width: 100%;
+		}
+
+		.edit-actions {
+			text-align: center;
+			white-space: normal;
+		}
+
+		.edit-button {
+			width: auto;
+			padding: 5px 8px;
+			margin-right: 6px;
+			cursor: pointer;
+		}
+
+		.edit-icon-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 30px;
+			height: 30px;
+			padding: 0;
+			margin-right: 0;
+			white-space: nowrap;
+		}
+
+		.edit-icon-button svg {
+			width: 16px;
+			height: 16px;
+			flex: none;
+		}
+
+		.editing-action-buttons,
+		.row-action-buttons {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 2px;
+			align-items: center;
+		}
+
+		.editing-action-buttons .edit-icon-button,
+		.row-action-buttons .edit-icon-button {
+			width: 100%;
+			max-width: 30px;
+			min-width: 0;
+			justify-self: center;
+		}
+
+		.save-action-button {
+			color: #188038;
+		}
+
+		.cancel-action-button {
+			color: #b00020;
+		}
+
+		.delete-action-button {
+			color: #b00020;
+		}
+
+		.edit-error {
+			margin-top: 6px;
+			color: #b00020;
+			font-size: 12px;
+			white-space: normal;
+		}
+
+		.price-down {
+			font-weight: 700;
+			color: green;
+		}
+
+		.price-up {
+			font-weight: 700;
+			color: #b00020;
+		}
+
+		.target-hit {
+			background: #e8f5e9;
+		}
+
+		.target-hit .price {
+			font-weight: 700;
+		}
+	</style>
+</head>
+
+<body id="top">
+
+	<h1>PriceTracker</h1>
+
+	<div id="summary"></div>
+
+	<div id="backupControls">
+		<button id="exportBackup" class="backup-button" type="button">Экспорт JSON</button>
+		<button id="importBackup" class="backup-button" type="button">Импорт JSON</button>
+		<input id="backupFile" type="file" accept=".json,application/json" hidden>
+	</div>
+
+	<div id="backupMessage"></div>
+
+	<nav id="storeNavigation"></nav>
+
+	<div id="storeSections"></div>
+
+	<script src="results.js"></script>
+
+</body>
+
+</html>

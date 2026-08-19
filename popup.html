@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<title>PriceTracker</title>
+
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			width: 380px;
+			padding: 16px;
+			margin: 0;
+		}
+
+		button {
+			width: 100%;
+			padding: 10px;
+			cursor: pointer;
+			margin-bottom: 8px;
+		}
+
+		#currentProduct {
+			margin-top: 12px;
+			padding: 10px;
+			border: 1px solid #ccc;
+			border-radius: 8px;
+		}
+
+		#name {
+			font-weight: 700;
+			margin-bottom: 8px;
+		}
+
+		#price {
+			font-size: 22px;
+			margin-bottom: 10px;
+		}
+
+		#message,
+		#updateStatus {
+			margin: 8px 0 12px;
+		}
+
+		h2 {
+			font-size: 16px;
+			margin-top: 20px;
+		}
+
+		.product {
+			padding: 10px 0;
+			border-top: 1px solid #ddd;
+		}
+
+		.product-name {
+			font-weight: 700;
+		}
+
+		.product-price {
+			margin-top: 4px;
+			font-size: 18px;
+		}
+
+		.product-updated {
+			margin-top: 4px;
+			font-size: 11px;
+		}
+
+		.product-error {
+			margin-top: 4px;
+			font-size: 12px;
+		}
+
+		.delete-button {
+			width: auto;
+			margin-top: 8px;
+			padding: 5px 8px;
+		}
+
+		input {
+			width: 100%;
+			box-sizing: border-box;
+			padding: 8px;
+			margin: 4px 0 10px;
+		}
+
+		label {
+			display: block;
+			font-size: 12px;
+			color: #555;
+		}
+	</style>
+</head>
+
+<body>
+
+	<button id="readPrice">
+		Считать текущий товар
+	</button>
+
+	<div id="currentProduct" hidden>
+		<div id="name"></div>
+		<div id="price"></div>
+
+		<label for="customName">Короткое имя</label>
+		<input id="customName" type="text" placeholder="Например: Exponenta малина">
+
+		<label for="targetPrice">Целевая цена, ₽</label>
+		<input id="targetPrice" type="number" step="0.01" placeholder="Например: 140">
+
+		<button id="saveProduct">
+			Сохранить товар
+		</button>
+	</div>
+
+	<div id="message"></div>
+
+	<button id="updateAll">
+		Обновить все цены
+	</button>
+
+	<div id="updateStatus"></div>
+
+	<h2>Сохранённые товары</h2>
+
+	<div id="products"></div>
+
+	<script src="store-adapters.js"></script>
+	<script src="popup.js"></script>
+</body>
+
+</html>
