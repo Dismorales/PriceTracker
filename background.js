@@ -1,6 +1,9 @@
 importScripts("store-adapters.js");
 
 
+const MAX_CONCURRENT_STORES = 4;
+
+
 let updateRequestQueue = Promise.resolve();
 
 
@@ -143,87 +146,53 @@ async function updateAllPrices(
   requestedStore
 ) {
 
-  for (let i = 0; i < products.length; i++) {
+  const storeGroups =
+    groupProductsByStore(products);
 
-    const product = products[i];
+  let completedProducts = 0;
+  let writeQueue = Promise.resolve();
 
+  const saveCompletedProduct = updatedProduct => {
 
-    await chrome.storage.local.set({
-      updateStatus: {
-        running: true,
-        current: i + 1,
-        total: products.length,
-        message: `Проверяю ${i + 1} из ${products.length}`,
-        store: requestedStore
+    writeQueue = writeQueue.then(async () => {
+
+      const productIndex =
+        allProducts.findIndex(product =>
+          product.url === updatedProduct.url
+        );
+
+      if (productIndex >= 0) {
+        allProducts[productIndex] = updatedProduct;
       }
+
+      completedProducts++;
+
+      await chrome.storage.local.set({
+        products: allProducts,
+        updateStatus: {
+          running: true,
+          current: completedProducts,
+          total: products.length,
+          message: `Проверено ${completedProducts} из ${products.length}`,
+          store: requestedStore
+        }
+      });
     });
 
+    return writeQueue;
+  };
 
-    try {
-
-      const data =
-        await readProductPage(product.url);
-
-
-      if (data.name) {
-        product.name = data.name;
-      }
-
-
-if (data.price) {
-
-  const newPrice = Number(data.price);
-  const oldPrice = Number(product.price);
-
-  if (!Array.isArray(product.history)) {
-    product.history = [];
-  }
-
-  if (
-    Number.isFinite(oldPrice) &&
-    oldPrice !== newPrice
-  ) {
-    product.history.push({
-      date: new Date().toISOString(),
-      price: oldPrice
-    });
-  }
-
-  product.price = newPrice;
-
-  product.updatedAt =
-    new Date().toISOString();
-
-  product.error = null;
-
-} else {
-
-        product.error =
-          "Цена не найдена";
-      }
-
-    } catch (error) {
-
-      console.error(
-        "Ошибка при обновлении:",
-        product.url,
-        error
+  await runStoreWorkerPool(
+    storeGroups,
+    async storeProducts => {
+      await updateStoreProducts(
+        storeProducts,
+        saveCompletedProduct
       );
-
-      product.error =
-        error.message;
     }
+  );
 
-
-    await chrome.storage.local.set({
-      products: allProducts
-    });
-
-
-    if (i < products.length - 1) {
-      await sleep(750);
-    }
-  }
+  await writeQueue;
 
 
   await chrome.storage.local.set({
@@ -246,6 +215,145 @@ if (data.price) {
       url: chrome.runtime.getURL("results.html")
     });
   }
+}
+
+
+function groupProductsByStore(products) {
+
+  const groups = new Map();
+
+  for (const product of products) {
+
+    const store = product.store;
+
+    if (!groups.has(store)) {
+      groups.set(store, []);
+    }
+
+    groups.get(store).push(product);
+  }
+
+  return Array.from(groups.values());
+}
+
+
+async function runStoreWorkerPool(
+  storeGroups,
+  updateStore
+) {
+
+  let nextStoreIndex = 0;
+  const errors = [];
+
+  const runNextStore = async () => {
+
+    while (nextStoreIndex < storeGroups.length) {
+
+      const storeIndex = nextStoreIndex++;
+
+      try {
+        await updateStore(storeGroups[storeIndex]);
+      } catch (error) {
+        console.error(error);
+        errors.push(error);
+      }
+    }
+  };
+
+  const workerCount =
+    Math.min(
+      MAX_CONCURRENT_STORES,
+      storeGroups.length
+    );
+
+  await Promise.all(
+    Array.from(
+      { length: workerCount },
+      () => runNextStore()
+    )
+  );
+
+  if (errors.length > 0) {
+    throw errors[0];
+  }
+}
+
+
+async function updateStoreProducts(
+  products,
+  saveCompletedProduct
+) {
+
+  for (let i = 0; i < products.length; i++) {
+
+    const updatedProduct =
+      await updateProduct(products[i]);
+
+    await saveCompletedProduct(updatedProduct);
+
+    if (i < products.length - 1) {
+      await sleep(750);
+    }
+  }
+}
+
+
+async function updateProduct(product) {
+
+  const updatedProduct = {
+    ...product
+  };
+
+  try {
+
+    const data =
+      await readProductPage(product.url);
+
+    if (data.name) {
+      updatedProduct.name = data.name;
+    }
+
+    if (data.price) {
+
+      const newPrice = Number(data.price);
+      const oldPrice = Number(product.price);
+
+      updatedProduct.history =
+        Array.isArray(product.history)
+          ? [...product.history]
+          : [];
+
+      if (
+        Number.isFinite(oldPrice) &&
+        oldPrice !== newPrice
+      ) {
+        updatedProduct.history.push({
+          date: new Date().toISOString(),
+          price: oldPrice
+        });
+      }
+
+      updatedProduct.price = newPrice;
+      updatedProduct.updatedAt =
+        new Date().toISOString();
+      updatedProduct.error = null;
+
+    } else {
+      updatedProduct.error = "Цена не найдена";
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Ошибка при обновлении:",
+      product.url,
+      error
+    );
+
+    updatedProduct.error = error.message;
+  }
+
+  return updatedProduct;
 }
 
 

@@ -274,6 +274,57 @@
   }
 
 
+  function readGlobusPrice(document) {
+
+    const priceElement =
+      document.querySelector(
+        '[itemprop="price"]'
+      );
+
+    const rubles =
+      priceElement
+        ?.innerText
+        ?.trim();
+
+    const normalizedRubles =
+      rubles?.replace(/\s/g, "");
+
+    const pennies =
+      priceElement
+        ?.nextElementSibling
+        ?.querySelector("div")
+        ?.innerText
+        ?.trim();
+
+    const newPrice =
+      Number(`${normalizedRubles}.${pennies}`);
+
+
+    const priceMain =
+      document.querySelector(
+        ".catalog-detail__item-price-actual-main"
+      )?.textContent?.trim();
+
+    const priceSub =
+      document.querySelector(
+        ".catalog-detail__item-price-actual-sub"
+      )?.textContent?.trim();
+
+    const fallbackPrice =
+      Number(`${priceMain}.${priceSub}`);
+
+    return normalizedRubles &&
+      pennies &&
+      Number.isFinite(newPrice)
+        ? newPrice
+        : priceMain &&
+          priceSub &&
+          Number.isFinite(fallbackPrice)
+          ? fallbackPrice
+          : undefined;
+  }
+
+
   const adapters = [
     {
       store: "5ka",
@@ -309,13 +360,8 @@
         "www.globus.ru"
       ],
       isPriceReady(document) {
-        return Boolean(
-          document.querySelector(
-            '[itemprop="price"]'
-          ) ||
-          document.querySelector(
-            ".catalog-detail__item-price-actual-main"
-          )
+        return Number.isFinite(
+          readGlobusPrice(document)
         );
       },
       read(document) {
@@ -325,50 +371,8 @@
             ?.innerText
             ?.trim();
 
-        const priceElement =
-          document.querySelector(
-            '[itemprop="price"]'
-          );
-
-        const rubles =
-          priceElement
-            ?.innerText
-            ?.trim();
-
-        const pennies =
-          priceElement
-            ?.nextElementSibling
-            ?.querySelector("div")
-            ?.innerText
-            ?.trim();
-
-        const newPrice =
-          Number(`${rubles}.${pennies}`);
-
-
-        const priceMain =
-          document.querySelector(
-            ".catalog-detail__item-price-actual-main"
-          )?.textContent?.trim();
-
-        const priceSub =
-          document.querySelector(
-            ".catalog-detail__item-price-actual-sub"
-          )?.textContent?.trim();
-
-        const fallbackPrice =
-          Number(`${priceMain}.${priceSub}`);
-
         const price =
-          rubles &&
-          pennies &&
-          Number.isFinite(newPrice)
-            ? newPrice
-            : priceMain &&
-              priceSub &&
-              Number.isFinite(fallbackPrice)
-              ? fallbackPrice
-              : undefined;
+          readGlobusPrice(document);
 
         return {
           name,
