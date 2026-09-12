@@ -42,6 +42,18 @@ const storeConfig = [
     hostnames: ["ozon.ru", "www.ozon.ru"]
   },
   {
+    key: "wildberries",
+    name: "Wildberries",
+    sectionId: "store-wildberries",
+    hostnames: ["wildberries.ru", "www.wildberries.ru"]
+  },
+  {
+    key: "dns",
+    name: "DNS",
+    sectionId: "store-dns",
+    hostnames: ["dns-shop.ru", "www.dns-shop.ru"]
+  },
+  {
     key: "other",
     name: "Другие",
     sectionId: "store-other",
@@ -66,6 +78,7 @@ const columnNames = [
 let editingProductUrl = null;
 let currentUpdateStatus = null;
 let currentStoreOrder = [];
+const updatingProductUrls = new Set();
 
 
 const exportBackupButton =
@@ -1313,8 +1326,60 @@ function createProductRow(product) {
       }
     );
 
+    const updateButton =
+      document.createElement("button");
+
+    updateButton.type = "button";
+    updateButton.className =
+      "edit-button edit-icon-button update-action-button";
+    updateButton.textContent = "↻";
+    updateButton.title = "Обновить товар";
+    updateButton.setAttribute(
+      "aria-label",
+      "Обновить товар"
+    );
+    updateButton.disabled =
+      Boolean(currentUpdateStatus?.running) ||
+      updatingProductUrls.has(product.url);
+
+    updateButton.addEventListener(
+      "click",
+      async () => {
+
+        updatingProductUrls.add(product.url);
+        updateButton.disabled = true;
+        updateButton.textContent = "…";
+
+        try {
+
+          const response =
+            await chrome.runtime.sendMessage({
+              action: "updateSingleProduct",
+              url: product.url
+            });
+
+          if (!response?.success) {
+            console.error(
+              response?.message ||
+              "Не удалось обновить товар."
+            );
+          }
+
+        } catch (error) {
+
+          console.error(error);
+
+        } finally {
+
+          updatingProductUrls.delete(product.url);
+          await renderResults();
+        }
+      }
+    );
+
     actionButtons.appendChild(editButton);
     actionButtons.appendChild(deleteButton);
+    actionButtons.appendChild(updateButton);
     actionsCell.appendChild(actionButtons);
   }
 

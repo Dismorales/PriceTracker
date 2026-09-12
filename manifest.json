@@ -21,7 +21,11 @@
     "https://magnit.ru/*",
     "https://www.magnit.ru/*",
     "https://ozon.ru/*",
-    "https://www.ozon.ru/*"
+    "https://www.ozon.ru/*",
+    "https://wildberries.ru/*",
+    "https://www.wildberries.ru/*",
+    "https://dns-shop.ru/*",
+    "https://www.dns-shop.ru/*"
   ],
   "background": {
     "service_worker": "background.js"

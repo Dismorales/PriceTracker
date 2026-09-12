@@ -396,6 +396,214 @@
   }
 
 
+  function parseWildberriesPrice(priceText) {
+
+    const normalizedText =
+      priceText?.replace(/\s/g, "");
+
+    const match =
+      normalizedText?.match(
+        /\d+(?:[.,]\d+)?(?=₽)/
+      );
+
+    if (!match) {
+      return undefined;
+    }
+
+    const price =
+      Number(match[0].replace(",", "."));
+
+    return Number.isFinite(price)
+      ? price
+      : undefined;
+  }
+
+
+  function readWildberriesPrice(document) {
+
+    const candidates = [];
+
+    for (const button of document.querySelectorAll("button")) {
+
+      if (!button.querySelector("svg")) {
+        continue;
+      }
+
+      const prices =
+        Array.from(button.querySelectorAll("*"))
+          .filter(element =>
+            element.children.length === 0
+          )
+          .map(element =>
+            parseWildberriesPrice(element.innerText)
+          )
+          .filter(Number.isFinite);
+
+      if (prices.length === 1) {
+        candidates.push(prices[0]);
+      }
+    }
+
+    return candidates.length === 1
+      ? candidates[0]
+      : undefined;
+  }
+
+
+  function findDnsProducts(value, products = []) {
+
+    if (Array.isArray(value)) {
+
+      for (const item of value) {
+        findDnsProducts(item, products);
+      }
+
+      return products;
+    }
+
+    if (!value || typeof value !== "object") {
+      return products;
+    }
+
+    const types =
+      Array.isArray(value["@type"])
+        ? value["@type"]
+        : [value["@type"]];
+
+    if (types.includes("Product")) {
+      products.push(value);
+    }
+
+    findDnsProducts(value["@graph"], products);
+
+    return products;
+  }
+
+
+  function readDnsOfferPrice(product) {
+
+    const offers =
+      Array.isArray(product.offers)
+        ? product.offers
+        : [product.offers];
+
+    const prices =
+      offers
+        .filter(offer => {
+
+          const currency =
+            offer?.priceCurrency;
+
+          return !currency ||
+            String(currency).trim().toUpperCase() === "RUB";
+        })
+        .map(offer => Number(offer?.price))
+        .filter(price =>
+          Number.isFinite(price) && price > 0
+        );
+
+    const uniquePrices =
+      [...new Set(prices)];
+
+    return uniquePrices.length === 1
+      ? uniquePrices[0]
+      : undefined;
+  }
+
+
+  function readDnsJsonLd(document) {
+
+    let name;
+    const prices = [];
+
+    const scripts =
+      document.querySelectorAll(
+        'script[type="application/ld+json"]'
+      );
+
+    for (const script of scripts) {
+
+      try {
+
+        const data =
+          JSON.parse(script.textContent);
+
+        for (const product of findDnsProducts(data)) {
+
+          if (!name && typeof product.name === "string") {
+
+            const productName = product.name.trim();
+
+            if (productName) {
+              name = productName;
+            }
+          }
+
+          const price =
+            readDnsOfferPrice(product);
+
+          if (price !== undefined) {
+            prices.push(price);
+          }
+        }
+
+      } catch (error) {
+        // Некорректный JSON-LD не мешает проверке остальных блоков.
+      }
+    }
+
+    const uniquePrices =
+      [...new Set(prices)];
+
+    return {
+      name,
+      price: uniquePrices.length === 1
+        ? uniquePrices[0]
+        : undefined
+    };
+  }
+
+
+  function parseDnsFallbackPrice(priceText) {
+
+    const normalizedText =
+      priceText?.replace(/\s/g, "");
+
+    const match =
+      normalizedText?.match(
+        /\d+(?:[.,]\d+)?(?=₽)/
+      );
+
+    if (!match) {
+      return undefined;
+    }
+
+    const price =
+      Number(match[0].replace(",", "."));
+
+    return Number.isFinite(price) && price > 0
+      ? price
+      : undefined;
+  }
+
+
+  function readDnsPrice(document, jsonLd) {
+
+    const data =
+      jsonLd || readDnsJsonLd(document);
+
+    if (data.price !== undefined) {
+      return data.price;
+    }
+
+    return parseDnsFallbackPrice(
+      document.querySelector(
+        ".product-buy__price"
+      )?.textContent
+    );
+  }
+
+
   const adapters = [
     {
       store: "5ka",
@@ -580,6 +788,64 @@
 
         const price =
           readOzonPrice(document);
+
+        return {
+          name,
+          price
+        };
+      }
+    },
+    {
+      store: "wildberries",
+      hostnames: [
+        "wildberries.ru",
+        "www.wildberries.ru"
+      ],
+      isPriceReady(document) {
+        return Number.isFinite(
+          readWildberriesPrice(document)
+        );
+      },
+      read(document) {
+
+        const name =
+          document.querySelector(
+            'h2[class*="productTitle"]'
+          )?.innerText?.trim();
+
+        const price =
+          readWildberriesPrice(document);
+
+        return {
+          name,
+          price
+        };
+      }
+    },
+    {
+      store: "dns",
+      hostnames: [
+        "dns-shop.ru",
+        "www.dns-shop.ru"
+      ],
+      isPriceReady(document) {
+        return Number.isFinite(
+          readDnsPrice(document)
+        );
+      },
+      read(document) {
+
+        const jsonLd =
+          readDnsJsonLd(document);
+
+        const name =
+          jsonLd.name ||
+          document.querySelector(
+            "h1.product-card-top__title"
+          )?.innerText?.trim();
+
+        const price =
+          readDnsPrice(document, jsonLd);
 
         return {
           name,

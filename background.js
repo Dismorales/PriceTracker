@@ -19,7 +19,129 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "updateSingleProduct") {
+
+    updateRequestQueue =
+      updateRequestQueue.then(() =>
+        handleSingleProductUpdate(message, sendResponse)
+      );
+
+    return true;
+  }
+
 });
+
+
+async function handleSingleProductUpdate(
+  message,
+  sendResponse
+) {
+
+  try {
+
+    const result =
+      await chrome.storage.local.get([
+        "products",
+        "updateStatus"
+      ]);
+
+    if (result.updateStatus?.running) {
+      sendResponse({
+        success: false,
+        message: "Нельзя обновить товар во время общего обновления."
+      });
+      return;
+    }
+
+    const products = result.products || [];
+    const product = products.find(item =>
+      item.url === message.url
+    );
+
+    if (!product) {
+      sendResponse({
+        success: false,
+        message: "Товар не найден."
+      });
+      return;
+    }
+
+    const updatedProduct =
+      await updateProduct(product);
+
+    const latestResult =
+      await chrome.storage.local.get([
+        "products",
+        "updateStatus"
+      ]);
+
+    if (latestResult.updateStatus?.running) {
+      sendResponse({
+        success: false,
+        message: "Началось общее обновление. Попробуйте позже."
+      });
+      return;
+    }
+
+    const latestProducts =
+      latestResult.products || [];
+
+    const productIndex =
+      latestProducts.findIndex(item =>
+        item.url === message.url
+      );
+
+    if (productIndex < 0) {
+      sendResponse({
+        success: false,
+        message: "Товар уже удалён."
+      });
+      return;
+    }
+
+    const latestProduct =
+      latestProducts[productIndex];
+
+    const productToSave = {
+      ...updatedProduct
+    };
+
+    for (const field of [
+      "customName",
+      "targetPrice"
+    ]) {
+      if (Object.hasOwn(latestProduct, field)) {
+        productToSave[field] = latestProduct[field];
+      } else {
+        delete productToSave[field];
+      }
+    }
+
+    const updatedProducts =
+      [...latestProducts];
+
+    updatedProducts[productIndex] =
+      productToSave;
+
+    await chrome.storage.local.set({
+      products: updatedProducts
+    });
+
+    sendResponse({
+      success: !productToSave.error,
+      message: productToSave.error || "Товар обновлён."
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    sendResponse({
+      success: false,
+      message: "Не удалось обновить товар."
+    });
+  }
+}
 
 
 async function handleUpdateRequest(message, sendResponse) {
@@ -148,6 +270,12 @@ async function updateAllPrices(
 
   const storeGroups =
     groupProductsByStore(products);
+
+  if (!requestedStore) {
+    storeGroups.sort((a, b) =>
+      b.length - a.length
+    );
+  }
 
   let completedProducts = 0;
   let writeQueue = Promise.resolve();
