@@ -36,6 +36,12 @@ const storeConfig = [
     hostnames: ["magnit.ru", "www.magnit.ru"]
   },
   {
+    key: "ozon",
+    name: "Ozon",
+    sectionId: "store-ozon",
+    hostnames: ["ozon.ru", "www.ozon.ru"]
+  },
+  {
     key: "other",
     name: "Другие",
     sectionId: "store-other",

@@ -325,6 +325,77 @@
   }
 
 
+  function parseOzonPrice(priceText) {
+
+    const normalizedText =
+      priceText?.replace(/\s/g, "");
+
+    const match =
+      normalizedText?.match(
+        /\d+(?:[.,]\d+)?(?=₽)/
+      );
+
+    if (!match) {
+      return undefined;
+    }
+
+    const price =
+      Number(match[0].replace(",", "."));
+
+    return Number.isFinite(price)
+      ? price
+      : undefined;
+  }
+
+
+  function readOzonPrice(document) {
+
+    const labels =
+      document.querySelectorAll("span, div");
+
+    for (const label of labels) {
+
+      if (label.innerText?.trim() !== "С банками") {
+        continue;
+      }
+
+      let container = label.parentElement;
+
+      while (
+        container &&
+        container !== document.body &&
+        container !== document.documentElement
+      ) {
+
+        const prices =
+          Array.from(
+            container.querySelectorAll("span, div")
+          )
+            .filter(element =>
+              element !== label &&
+              element.children.length === 0
+            )
+            .map(element =>
+              parseOzonPrice(element.innerText)
+            )
+            .filter(Number.isFinite);
+
+        if (prices.length === 1) {
+          return prices[0];
+        }
+
+        if (prices.length > 1) {
+          break;
+        }
+
+        container = container.parentElement;
+      }
+    }
+
+    return undefined;
+  }
+
+
   const adapters = [
     {
       store: "5ka",
@@ -482,6 +553,33 @@
 
         const price =
           readMagnitPrice(document);
+
+        return {
+          name,
+          price
+        };
+      }
+    },
+    {
+      store: "ozon",
+      hostnames: [
+        "ozon.ru",
+        "www.ozon.ru"
+      ],
+      isPriceReady(document) {
+        return Number.isFinite(
+          readOzonPrice(document)
+        );
+      },
+      read(document) {
+
+        const name =
+          document.querySelector("h1")
+            ?.innerText
+            ?.trim();
+
+        const price =
+          readOzonPrice(document);
 
         return {
           name,

@@ -19,7 +19,9 @@
     "https://lavka.yandex.ru/*",
     "https://smart.swnn.ru/*",
     "https://magnit.ru/*",
-    "https://www.magnit.ru/*"
+    "https://www.magnit.ru/*",
+    "https://ozon.ru/*",
+    "https://www.ozon.ru/*"
   ],
   "background": {
     "service_worker": "background.js"
