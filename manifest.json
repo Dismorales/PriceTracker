@@ -25,7 +25,8 @@
     "https://wildberries.ru/*",
     "https://www.wildberries.ru/*",
     "https://dns-shop.ru/*",
-    "https://www.dns-shop.ru/*"
+    "https://www.dns-shop.ru/*",
+    "https://aliexpress.ru/*"
   ],
   "background": {
     "service_worker": "background.js"

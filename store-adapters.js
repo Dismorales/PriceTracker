@@ -604,6 +604,42 @@
   }
 
 
+  function readAliExpressPrice(document) {
+
+    const container = document.querySelector(
+      '[class*="HazeProductPrice__wrap__"]'
+    );
+
+    if (!container) {
+      return undefined;
+    }
+
+    const coupon = container.querySelector(
+      '[class*="SnowPrice__priceWithCoupon__"]'
+    );
+
+    // Купон будущей акции не является доступной сейчас ценой.
+    const couponPrice = coupon && !coupon.closest(
+      '[class*="SnowPrice__isWarmUp__"], ' +
+      '[class*="SnowPrice__secondPrice__"]'
+    )
+      ? parseOzonPrice(coupon.textContent)
+      : undefined;
+
+    if (couponPrice > 0) {
+      return couponPrice;
+    }
+
+    const mainPrice = parseOzonPrice(
+      container.querySelector(
+        '[class*="SnowPrice__blockMain__"]'
+      )?.textContent
+    );
+
+    return mainPrice > 0 ? mainPrice : undefined;
+  }
+
+
   const adapters = [
     {
       store: "5ka",
@@ -852,6 +888,32 @@
           price
         };
       }
+    },
+    {
+      store: "aliexpress",
+      hostnames: ["aliexpress.ru"],
+      normalizeUrl(url) {
+        const parsed = new URL(url);
+        const skuId = parsed.searchParams.get("sku_id");
+
+        parsed.search = "";
+        parsed.hash = "";
+
+        if (skuId !== null) {
+          parsed.searchParams.set("sku_id", skuId);
+        }
+
+        return parsed.href;
+      },
+      isPriceReady(document) {
+        return Number.isFinite(readAliExpressPrice(document));
+      },
+      read(document) {
+        return {
+          name: document.querySelector("h1")?.innerText?.trim(),
+          price: readAliExpressPrice(document)
+        };
+      }
     }
   ];
 
@@ -889,7 +951,7 @@
     return {
       ...adapter.read(document),
       store: adapter.store,
-      url
+      url: adapter.normalizeUrl ? adapter.normalizeUrl(url) : url
     };
   }
 

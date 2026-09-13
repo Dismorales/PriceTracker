@@ -54,6 +54,12 @@ const storeConfig = [
     hostnames: ["dns-shop.ru", "www.dns-shop.ru"]
   },
   {
+    key: "aliexpress",
+    name: "AliExpress",
+    sectionId: "store-aliexpress",
+    hostnames: ["aliexpress.ru"]
+  },
+  {
     key: "other",
     name: "Другие",
     sectionId: "store-other",
