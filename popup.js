@@ -13,6 +13,9 @@ const saveButton =
 const updateButton =
   document.getElementById("updateAll");
 
+const resultsButton =
+  document.getElementById("openResults");
+
 const currentProductElement =
   document.getElementById("currentProduct");
 
@@ -48,6 +51,15 @@ saveButton.addEventListener(
 updateButton.addEventListener(
   "click",
   updateAllPrices
+);
+
+resultsButton.addEventListener(
+  "click",
+  () => {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("results.html")
+    });
+  }
 );
 
 
